@@ -1,4 +1,6 @@
 ﻿using System.IO;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.ModLoader;
 
 namespace MisterCarlosMod.NPCs
@@ -26,5 +28,12 @@ namespace MisterCarlosMod.NPCs
         public virtual void SendExtraAI(BinaryWriter writer) { }
 
         public virtual void ReceiveExtraAI(BinaryReader reader) { }
+
+        public virtual bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
+        {
+            return true;
+        }
+
+        public virtual void PostDraw(SpriteBatch spriteBatch, Color drawColor) { }
     }
 }

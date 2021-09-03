@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
@@ -16,7 +17,9 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         private readonly Texture2D wingsTexture = ModContent.GetTexture("Terraria/Wings_8");
         private readonly Texture2D armTexture = ModContent.GetTexture("MisterCarlosMod/NPCs/MisterCarlos/MisterCarlos_Arm");
-        private readonly HoldWeapon weapon = new HoldWeapon();
+        private readonly Texture2D leafTexture = ModContent.GetTexture("Terraria/Projectile_" + ProjectileID.Leaf);
+
+        public HoldWeapon weapon = null;
         private const int wingFrames = 4;
         private int wingsFrameCount = 0;
 
@@ -26,9 +29,13 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         private bool transitioning = false;
         private bool despawn = false;
 
+        private const int leafCount = 8;
+        private const float leafSpeed = 2f;
+        private float leafTimer = 0;
+
         public MisterCarlos()
         {
-            attacks[0] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
+            attacks[0] = new List<NPCAttack<MisterCarlos>> { new LunarPortals(this) };
             attacks[1] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
             attacks[2] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
         }
@@ -108,12 +115,26 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override void AI()
         {
-            // Wings animation
+            // Animación de alas
             if (++wingsFrameCount > 4)
             {
                 wingsFrame = (wingsFrame + 1) % wingFrames;
                 wingsFrameCount = 0;
             }
+
+            // Animación de hojas
+            if (++leafTimer > 360f / leafCount / leafSpeed)
+            {
+                leafTimer = 0;
+            }
+
+            // Rotar personaje según velocidad
+            float rotation = MathHelper.ToRadians(MathHelper.Min(Math.Abs(npc.velocity.X) * 3f, 45f));
+            if (npc.direction == -1) {
+                rotation -= rotation * 2;
+            }
+
+            npc.rotation = rotation;
 
             float lifeRadius = (float)npc.life / npc.lifeMax;
             float transitionDuration = 180f;
@@ -121,31 +142,46 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             bool doFirstTransition = Phase == 0 && lifeRadius <= (Main.expertMode ? 0.7f : 0.5f);
             bool doSecondTransition = Main.expertMode && Phase == 1 && lifeRadius <= 0.25f;
 
-            if (!transitioning)
+            if (!transitioning && Main.netMode != NetmodeID.MultiplayerClient)
             {
                 if (doFirstTransition)
                 {
                     Phase = 1;
                     StartTransition();
-                } else if (doSecondTransition)
+                    npc.netUpdate = true;
+                }
+                else if (doSecondTransition)
                 {
                     Phase = 2;
                     StartTransition();
-                } 
+                    npc.netUpdate = true;
+                }
             }
 
             if (transitioning)
             {
-                // Transition AI
+                // IA de transición
                 npc.dontTakeDamage = true;
                 npc.velocity *= 0.93f;
 
-                // Slow down, then run transition timer
-                if (npc.velocity.Length() < 0.3f)
+                // Reducir velocided y comenzar ciclo de transición
+                float velocityLength = npc.velocity.Length();
+                if (velocityLength == 0f)
                 {
-                    npc.velocity = Vector2.Zero;
+                    CycleTimer++;
 
-                    if (++CycleTimer >= transitionDuration)
+                    if (CycleTimer == 90f)
+                    {
+                        for (int d = 0; d < 30; d++)
+                        {
+                            int dust = Dust.NewDust(npc.position, npc.width, npc.height, DustID.GreenTorch);
+                            Main.dust[dust].noGravity = true;
+                            Main.dust[dust].velocity *= 6f;
+                            Main.dust[dust].fadeIn = 1.3f;
+                        }
+                    }
+
+                    if (CycleTimer >= transitionDuration)
                     {
                         CycleTimer -= transitionDuration;
                         initAttack = true;
@@ -157,16 +193,22 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                         return;
                     }
                 }
-            } else
+                else if (velocityLength < 0.3f)
+                {
+                    npc.velocity = Vector2.Zero;
+                }
+            }
+            else
             {
-                // Actual fight AI
+                // IA de pelea
                 if (initAttack)
                 {
                     npc.TargetClosest(false);
                     if (!npc.HasValidTarget)
                     {
                         despawn = true;
-                    } else
+                    }
+                    else
                     {
                         CurrentAttack.Initialize();
                     }
@@ -180,7 +222,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 {
                     CurrentAttack.AI();
 
-                    // Progress cycle
+                    // Progresar ciclo
                     CycleTimer++;
                     if (Main.netMode != NetmodeID.MultiplayerClient && CycleTimer >= CurrentAttack.Duration)
                     {
@@ -198,8 +240,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         {
             transitioning = true;
             CycleTimer = 0f;
-
-            npc.netUpdate = true;
         }
 
         private void DespawnAI()
@@ -246,6 +286,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         public override void SendExtraAI(BinaryWriter writer)
         {
             writer.Write(initAttack);
+            writer.Write(transitioning);
             //writer.Write(despawn);
 
             CurrentAttack.SendExtraAI(writer);
@@ -254,6 +295,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         public override void ReceiveExtraAI(BinaryReader reader)
         {
             initAttack = reader.ReadBoolean();
+            transitioning = reader.ReadBoolean();
             //despawn = reader.ReadBoolean();
 
             CurrentAttack.ReceiveExtraAI(reader);
@@ -267,18 +309,67 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override bool PreDraw(SpriteBatch spriteBatch, Color drawColor)
         {
-            // Draw wings
+            // Dibujar alas
             int frameHeight = wingsTexture.Height / wingFrames;
-            Rectangle rect = new Rectangle(0, wingsFrame * frameHeight, wingsTexture.Width, frameHeight);
+            Rectangle sourceRectangle = new Rectangle(0, wingsFrame * frameHeight, wingsTexture.Width, frameHeight);
+
+            Vector2 origin = sourceRectangle.Size() / 2f;
+            origin.X += 7;
+            origin.Y -= 3;
 
             Vector2 position = npc.Center;
-            position.Y -= 28f;
-            position.X -= wingsTexture.Width / 2 + (8 * npc.direction);
 
-            SpriteEffects flip = npc.direction == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
-            spriteBatch.Draw(wingsTexture, position - Main.screenPosition, rect, drawColor, npc.rotation, Vector2.Zero, 1f, flip, 0f);
+            SpriteEffects flip = SpriteEffects.None;
+            if(npc.direction == -1)
+            {
+                flip = SpriteEffects.FlipHorizontally;
+                origin.X = sourceRectangle.Width - origin.X;
+            }
 
-            return true;
+            spriteBatch.Draw(wingsTexture, position - Main.screenPosition, sourceRectangle, drawColor, npc.rotation, origin, 1f, flip, 0f);
+
+            // Dibujar anillos de hojas
+            int phasesLeft = (Main.expertMode ? 2 : 1) - Phase;
+            if (phasesLeft > 0)
+            {
+                int frameCount = Main.projFrames[ProjectileID.Leaf];
+                frameHeight = leafTexture.Height / frameCount;
+
+                float cycleDegrees = 360f / leafCount;
+                int frame = (int)Math.Floor((leafTimer / cycleDegrees) * frameCount);
+
+                sourceRectangle = new Rectangle(0, frame * frameHeight, leafTexture.Width, frameHeight);
+                origin = new Vector2(leafTexture.Width / 2f, frameHeight / 2f);
+
+                for (int ring = 0; ring < phasesLeft; ring++)
+                {
+                    for (int leaf = 0; leaf < leafCount; leaf++)
+                    {
+                        float rotate = (leafTimer * leafSpeed) + (cycleDegrees * leaf);
+
+                        // Invertir rotación en el segundo anillo
+                        if (ring % 2 == 0)
+                        {
+                            rotate *= -1f;
+                        }
+
+                        Vector2 rotation = new Vector2(0, 50f * (ring + 1)).RotatedBy(MathHelper.ToRadians(rotate));
+                        position = npc.Center + rotation;
+
+                        spriteBatch.Draw(
+                            leafTexture,
+                            position - Main.screenPosition,
+                            sourceRectangle, drawColor * 0.5f,
+                            rotation.ToRotation() + MathHelper.PiOver2,
+                            origin,
+                            1f,
+                            SpriteEffects.None,
+                            0f);
+                    }
+                }
+            }
+
+            return CurrentAttack.PreDraw(spriteBatch, drawColor);
         }
 
         public override void PostDraw(SpriteBatch spriteBatch, Color drawColor)
@@ -287,8 +378,8 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             SpriteEffects flip;
             Vector2 origin;
 
-            // Draw holding weapon
-            if (weapon.Texture != null)
+            // Dibujar arma en mano
+            if (weapon != null)
             {
                 position = npc.Center;
                 flip = npc.direction == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
@@ -296,7 +387,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 origin = weapon.origin;
                 if (npc.direction == -1)
                 {
-                    // Flip origin
                     origin.X = weapon.Texture.Width - origin.X;
                 }
 
@@ -305,7 +395,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
                 if (npc.direction == 1)
                 {
-                    // Flip rotation to other side
+                    // Invertir rotación al otro lado
                     rotation = (maxRotation * 2) - (rotation + maxRotation) - maxRotation;
                 }
 
@@ -321,7 +411,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     0f);
             }
 
-            // Draw arm
+            // Dibujar brazo
             position = npc.Center;
             position.Y -= 5f;
 
@@ -329,26 +419,24 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             flip = npc.direction == 1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
 
             spriteBatch.Draw(armTexture, position - Main.screenPosition, armTexture.Bounds, drawColor, npc.rotation, origin, 1f, flip, 0f);
-            
+
+            CurrentAttack.PostDraw(spriteBatch, drawColor);
+
         }
 
         public class HoldWeapon
         {
-            private int id = 0;
+            public readonly Texture2D Texture;
+            public readonly int Id;
             public Vector2 origin = Vector2.Zero;
             public float rotation = 0f;
 
-            public Texture2D Texture { get; private set; }
-
-            public int Item
+            public HoldWeapon(int id, Vector2 origin, float rotation = 0f)
             {
-                get => id;
-                set
-                {
-                    Texture = ModContent.GetTexture("Terraria/Item_" + value);
-                    origin = new Vector2(Texture.Width / 8f, Texture.Height / 2f);
-                    id = value;
-                }
+                Id = id;
+                this.origin = origin;
+                this.rotation = rotation;
+                Texture = ModContent.GetTexture("Terraria/Item_" + id);
             }
         }
     }
