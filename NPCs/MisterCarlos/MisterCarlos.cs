@@ -35,7 +35,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public MisterCarlos()
         {
-            attacks[0] = new List<NPCAttack<MisterCarlos>> { new LunarPortals(this) };
+            attacks[0] = new List<NPCAttack<MisterCarlos>> { new CirnoWithAStarlight(this) };
             attacks[1] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
             attacks[2] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
         }
@@ -47,6 +47,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override void SetDefaults()
         {
+            npc.aiStyle = -1;
             npc.boss = true;
             npc.defense = 40;
             npc.width = 30;
@@ -123,39 +124,18 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             }
 
             // Animación de hojas
-            if (++leafTimer > 360f / leafCount / leafSpeed)
-            {
-                leafTimer = 0;
-            }
+            leafTimer = (leafTimer + 1) % (360f / leafCount / leafSpeed);
 
             // Rotar personaje según velocidad
-            float rotation = MathHelper.ToRadians(MathHelper.Min(Math.Abs(npc.velocity.X) * 3f, 45f));
-            if (npc.direction == -1) {
-                rotation -= rotation * 2;
-            }
+            
+            npc.rotation = MathHelper.ToRadians(MathHelper.Min(npc.velocity.X * 2f, 40f));
 
-            npc.rotation = rotation;
-
-            float lifeRadius = (float)npc.life / npc.lifeMax;
-            float transitionDuration = 180f;
-
-            bool doFirstTransition = Phase == 0 && lifeRadius <= (Main.expertMode ? 0.7f : 0.5f);
-            bool doSecondTransition = Main.expertMode && Phase == 1 && lifeRadius <= 0.25f;
-
-            if (!transitioning && Main.netMode != NetmodeID.MultiplayerClient)
+            // Mirar hacia el personaje
+            int direction = Math.Sign((Target.Center - npc.Center).X);
+            if (direction != 0)
             {
-                if (doFirstTransition)
-                {
-                    Phase = 1;
-                    StartTransition();
-                    npc.netUpdate = true;
-                }
-                else if (doSecondTransition)
-                {
-                    Phase = 2;
-                    StartTransition();
-                    npc.netUpdate = true;
-                }
+                npc.direction = direction;
+                npc.spriteDirection = direction;
             }
 
             if (transitioning)
@@ -181,6 +161,8 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                         }
                     }
 
+                    float transitionDuration = 180f;
+
                     if (CycleTimer >= transitionDuration)
                     {
                         CycleTimer -= transitionDuration;
@@ -200,11 +182,28 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             }
             else
             {
+                // Comenzar transición si es necesario
+                float lifeRadius = (float)npc.life / npc.lifeMax;
+
+                bool doFirstTransition = Phase == 0 && lifeRadius <= (Main.expertMode ? 0.7f : 0.5f);
+                bool doSecondTransition = Main.expertMode && Phase == 1 && lifeRadius <= 0.25f;
+
+                if (Main.netMode != NetmodeID.MultiplayerClient && (doFirstTransition || doSecondTransition))
+                {
+                    Phase = doFirstTransition ? 1 : 2;
+                    StartTransition();
+
+                    npc.netUpdate = true;
+                    return;
+                }
+
                 // IA de pelea
                 if (initAttack)
                 {
+                    weapon = null;
+
                     npc.TargetClosest(false);
-                    if (!npc.HasValidTarget)
+                    if (!HasValidTarget())
                     {
                         despawn = true;
                     }
@@ -224,7 +223,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
                     // Progresar ciclo
                     CycleTimer++;
-                    if (Main.netMode != NetmodeID.MultiplayerClient && CycleTimer >= CurrentAttack.Duration)
+                    if (Main.netMode != NetmodeID.MultiplayerClient && CycleTimer > CurrentAttack.Duration)
                     {
                         CycleTimer -= CurrentAttack.Duration;
                         AttackIndex = (AttackIndex + 1) % attacks[Phase].Count;
@@ -244,9 +243,9 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         private void DespawnAI()
         {
-            // Stop despawning if target found
+            // Dejar de despawnear si se encuentra un objetivo válido
             npc.TargetClosest(false);
-            if (Main.netMode != NetmodeID.MultiplayerClient && npc.HasValidTarget)
+            if (Main.netMode != NetmodeID.MultiplayerClient && HasValidTarget())
             {
                 CycleTimer = 0f;
                 initAttack = true;
@@ -256,7 +255,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 return;
             }
 
-            // Actual despawn AI
+            // Reducir velocidad y despawnear
             npc.velocity *= 0.95f;
             if (npc.velocity.Length() < 0.3f)
             {
@@ -274,7 +273,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         {
             if (npc.life > 0) return;
 
-            // Death particles
+            // Efecto de muerte
             for (int d = 0; d < 20; d++)
             {
                 int dust = Dust.NewDust(npc.Center, npc.width, npc.height, DustID.Dirt);
@@ -320,7 +319,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             Vector2 position = npc.Center;
 
             SpriteEffects flip = SpriteEffects.None;
-            if(npc.direction == -1)
+            if (npc.direction == -1)
             {
                 flip = SpriteEffects.FlipHorizontally;
                 origin.X = sourceRectangle.Width - origin.X;
@@ -390,21 +389,17 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     origin.X = weapon.Texture.Width - origin.X;
                 }
 
-                float maxRotation = MathHelper.PiOver2;
-                float rotation = MathHelper.Clamp(weapon.rotation, -maxRotation, maxRotation);
+                Vector2 direction = (Vector2.UnitX * -npc.direction).RotatedBy(weapon.rotation);
 
                 if (npc.direction == 1)
-                {
-                    // Invertir rotación al otro lado
-                    rotation = (maxRotation * 2) - (rotation + maxRotation) - maxRotation;
-                }
+                    direction.X *= -1f;
 
                 spriteBatch.Draw(
                     weapon.Texture,
                     position - Main.screenPosition,
                     weapon.Texture.Bounds,
                     drawColor,
-                    rotation,
+                    direction.ToRotation(),
                     origin,
                     1f,
                     flip,
@@ -421,23 +416,32 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             spriteBatch.Draw(armTexture, position - Main.screenPosition, armTexture.Bounds, drawColor, npc.rotation, origin, 1f, flip, 0f);
 
             CurrentAttack.PostDraw(spriteBatch, drawColor);
-
         }
 
-        public class HoldWeapon
+        private bool HasValidTarget()
         {
-            public readonly Texture2D Texture;
-            public readonly int Id;
-            public Vector2 origin = Vector2.Zero;
-            public float rotation = 0f;
+            if (!npc.HasValidTarget) return false;
 
-            public HoldWeapon(int id, Vector2 origin, float rotation = 0f)
-            {
-                Id = id;
-                this.origin = origin;
-                this.rotation = rotation;
-                Texture = ModContent.GetTexture("Terraria/Item_" + id);
-            }
+            Vector2 difference = Target.Center - npc.Center;
+            return difference.Length() < 6000f;
+        }
+    }
+    public class HoldWeapon
+    {
+        public readonly string TexturePath;
+        public Vector2 origin = Vector2.Zero;
+        public float rotation = 0f;
+
+        public HoldWeapon(string texture, Vector2 origin, float rotation = 0f)
+        {
+            this.origin = origin;
+            this.rotation = rotation;
+            TexturePath = texture;
+        }
+
+        public Texture2D Texture
+        {
+            get => ModContent.GetTexture(TexturePath);
         }
     }
 }
