@@ -12,7 +12,6 @@ namespace MisterCarlosMod.Projectiles
         public override string Texture => "Terraria/Projectile_" + ProjectileID.MoonlordTurretLaser;
 
         private const int maxSegments = 100;
-        private Projectile Owner => Main.projectile[(int)projectile.ai[0]];
         private float ScaleFactor => 1.2f * Owner.scale * projectile.scale;
         private float Length => maxSegments * ScaleFactor * 20;
 
@@ -28,6 +27,13 @@ namespace MisterCarlosMod.Projectiles
             projectile.ignoreWater = true;
             projectile.scale = 0f;
         }
+        private Projectile Owner => Main.projectile[(int)projectile.ai[0]];
+
+        public float LaserRotation
+        {
+            get => projectile.ai[1];
+            set => projectile.ai[1] = value;
+        }
 
         public override void AI()
         {
@@ -36,15 +42,17 @@ namespace MisterCarlosMod.Projectiles
                 Main.PlaySound(SoundID.Item117, projectile.Center);
                 playSound = false;
             }
+
             projectile.scale = MathHelper.Min(projectile.scale + 0.1f, 1f);
 
             if (Owner.scale < 0.1f)
             {
                 projectile.Kill();
             }
+
             for (int d = 0; d < 10; d++)
             {
-                Vector2 rotation = Vector2.UnitY.RotatedBy(projectile.rotation);
+                Vector2 rotation = Vector2.UnitY.RotatedBy(LaserRotation);
                 Vector2 position = rotation * Main.rand.NextFloat(Length);
                 float velocity = 2f + Main.rand.NextFloat(3f);
 
@@ -96,9 +104,9 @@ namespace MisterCarlosMod.Projectiles
                     sourceRectangle.Height -= remove;
                 }
 
-                spriteBatch.Draw(texture, position - Main.screenPosition, sourceRectangle, Color.White, projectile.rotation, origin, ScaleFactor, SpriteEffects.None, 0f);
+                spriteBatch.Draw(texture, position - Main.screenPosition, sourceRectangle, Color.White, LaserRotation, origin, ScaleFactor, SpriteEffects.None, 0f);
 
-                position += new Vector2(0f, frameHeight * ScaleFactor).RotatedBy(projectile.rotation);
+                position += new Vector2(0f, frameHeight * ScaleFactor).RotatedBy(LaserRotation);
             }
 
             return false;
@@ -108,7 +116,7 @@ namespace MisterCarlosMod.Projectiles
         {
             Projectile owner = Main.projectile[(int)projectile.ai[0]];
 
-            Vector2 unit = Vector2.UnitY.RotatedBy(projectile.rotation);
+            Vector2 unit = Vector2.UnitY.RotatedBy(LaserRotation);
             return Collision.CheckAABBvLineCollision(targetHitbox.TopLeft(), targetHitbox.Size(), owner.Center, owner.Center + unit * Length);
         }
 

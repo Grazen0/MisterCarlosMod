@@ -39,7 +39,6 @@ namespace MisterCarlosMod.Projectiles
             projectile.width = projectile.height = 50;
             projectile.ignoreWater = true;
             projectile.tileCollide = false;
-            projectile.friendly = false;
             projectile.hostile = true;
             projectile.alpha = 255;
         }
@@ -70,10 +69,9 @@ namespace MisterCarlosMod.Projectiles
                     {
                         for (int i = 0; i < LaserCount; i++)
                         {
-                            int projID = Projectile.NewProjectile(projectile.Center, Vector2.Zero, ModContent.ProjectileType<BigLunarPortalLaser>(), projectile.damage, 0f, projectile.owner, projectile.whoAmI);
-
                             float angleBetweenLasers = MathHelper.TwoPi / LaserCount;
-                            Main.projectile[projID].rotation = LaserOffset + (i * angleBetweenLasers);
+                            float rotation = LaserOffset + (i * angleBetweenLasers);
+                            Projectile.NewProjectile(projectile.Center, Vector2.Zero, ModContent.ProjectileType<BigLunarPortalLaser>(), projectile.damage, 0f, projectile.owner, projectile.whoAmI, rotation);
                         }
                     } else if (attackTimer > attackAt)
                     {

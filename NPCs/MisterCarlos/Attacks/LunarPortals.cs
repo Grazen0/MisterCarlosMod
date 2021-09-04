@@ -5,6 +5,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using MisterCarlosMod.Projectiles;
+using System.IO;
 
 namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 {
@@ -16,7 +17,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
         private int damage = 90;
 
         private Vector2 position;
-        private int timer;
         private int attacksCounter;
 
         public LunarPortals(MisterCarlos carlos) : base(carlos)
@@ -32,7 +32,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
         public override void Initialize()
         {
             attacksCounter = TotalAttacks;
-            timer = 0;
 
             if (Main.netMode != NetmodeID.MultiplayerClient)
             {
@@ -44,6 +43,14 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
                 modNPC.npc.netUpdate = true;
             }
+
+            if (Main.netMode != NetmodeID.Server)
+            {
+                modNPC.weapon = new HoldWeapon("Terraria/Item_" + ItemID.MoonlordTurretStaff, Vector2.Zero);
+
+                Rectangle bounds = modNPC.weapon.Texture.Bounds;
+                modNPC.weapon.origin = bounds.BottomLeft() + Vector2.Normalize(bounds.TopRight() - bounds.BottomLeft()) * 4f;
+            }
         }
 
         public override void AI()
@@ -54,39 +61,35 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
             int totalAttackDuration = 60;
 
             // Moverse cerca del jugador
-            float moveSpeed = 16f + (modNPC.Target.velocity.Length() * 0.2f);
+            float moveSpeed = 16f + (modNPC.Target.velocity.Length() * 0.5f);
             float inertia = 25f;
             Vector2 velocity = npc.DirectionTo(modNPC.Target.Center + position) * moveSpeed;
 
             npc.velocity = (npc.velocity * (inertia - 1) + velocity) / inertia;
 
-            if (timer > moveDuration)
+            if (modNPC.CycleTimer > moveDuration)
             {
-                int timePassed = timer - moveDuration;
+                float timePassed = modNPC.CycleTimer - moveDuration;
                 int attackSpeed = (int)Math.Floor((double)totalAttackDuration / TotalAttacks);
 
                 if (attacksCounter > 0)
                 {
-                    modNPC.weapon = new MisterCarlos.HoldWeapon(ItemID.MoonlordTurretStaff, Vector2.Zero);
-                    Texture2D staffTexture = modNPC.weapon.Texture;
-
-                    modNPC.weapon.origin = staffTexture.Bounds.BottomLeft() + Vector2.Normalize(staffTexture.Bounds.TopRight() - staffTexture.Bounds.BottomLeft()) * 4f;
-
-                    if (Main.netMode != NetmodeID.MultiplayerClient && timePassed % attackSpeed == 0)
+                    if (timePassed % attackSpeed == 0)
                     {
-                        LaunchPortal(totalAttackDuration, timePassed);
-                        npc.netUpdate = true;
+                        if (Main.netMode != NetmodeID.MultiplayerClient)
+                        {
+                            LaunchPortal(totalAttackDuration, timePassed);
+                        }
+                        attacksCounter--;
                     }
                 } else if(timePassed > totalAttackDuration + 30)
                 {
                     modNPC.weapon = null;
                 }
             }
-
-            timer++;
         }
 
-        private void LaunchPortal(int totalAttackDuration, int timePassed)
+        private void LaunchPortal(int totalAttackDuration, float timePassed)
         {
             // Lanzar portal lunar
             Vector2 toPlayer = modNPC.npc.DirectionTo(modNPC.Target.Center);
@@ -112,8 +115,16 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                 Main.myPlayer,
                 duration,
                 Main.rand.NextFloat() * MathHelper.TwoPi / BigLunarPortal.LaserCount);
+        }
 
-            attacksCounter--;
+        public override void SendExtraAI(BinaryWriter writer)
+        {
+            writer.WritePackedVector2(position);
+        }
+
+        public override void ReceiveExtraAI(BinaryReader reader)
+        {
+            position = reader.ReadPackedVector2();
         }
     }
 }
