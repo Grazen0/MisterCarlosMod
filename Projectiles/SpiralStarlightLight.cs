@@ -42,7 +42,7 @@ namespace MisterCarlosMod.Projectiles
 
         public override bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
         {
-            // Dibujar el proyectil manualmente
+            // Manually draw projectile
             Texture2D texture = Main.projectileTexture[projectile.type];
 
             Color drawColor = GetAlpha(lightColor) ?? lightColor;

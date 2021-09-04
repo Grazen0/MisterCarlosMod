@@ -79,12 +79,12 @@ namespace MisterCarlosMod.Projectiles
 
                 if (i == maxSegments - 1)
                 {
-                    // Final del láser
+                    // Laser start
                     y = texture.Height - frameHeight;
                 }
                 else if (i > 0)
                 {
-                    // Cuerpo del láser
+                    // Laser body
                     int bodyFrames = frames - 2;
                     int frameIndex = 1 + (i % bodyFrames);
 
@@ -92,7 +92,7 @@ namespace MisterCarlosMod.Projectiles
                 }
                 else
                 {
-                    // Inicio del láser
+                    // Laser end
                     y = 0;
                 }
 

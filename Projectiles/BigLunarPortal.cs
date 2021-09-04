@@ -16,6 +16,7 @@ namespace MisterCarlosMod.Projectiles
         private const float telegraphDuration = 60f;
         private const float scaleFactor = 1.5f;
 
+        
         // Local AI
         private float attackTimer = 0f;
         private bool playSound = true;
@@ -93,15 +94,15 @@ namespace MisterCarlosMod.Projectiles
 
         public override Color? GetAlpha(Color lightColor)
         {
-            // Código fuente del vanilla
+            // Stuff from vanilla source code
             int val = 255 - projectile.alpha;
             return new Color(val, val, val, val);
         }
 
         public override bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
         {
-            // Más del código fuente vanilla
-            // Ni idea de como funciona pero hace la animación de vórtice
+            // More stuff from vanilla source code
+            // No idea how it works but it does the vortex effect thingy
             Texture2D texture = Main.projectileTexture[projectile.type];
             Texture2D extraTexture = Main.extraTexture[50];
 
@@ -123,7 +124,7 @@ namespace MisterCarlosMod.Projectiles
             spriteBatch.Draw(extraTexture, position, null, alpha * 0.8f, projectile.rotation * 0.5f, origin, projectile.scale * 0.9f, SpriteEffects.None, 0f);
             spriteBatch.Draw(texture, position, null, color12, -projectile.rotation * 0.7f, origin, projectile.scale, SpriteEffects.FlipHorizontally, 0f);
 
-            // Dibujar líneas de advertencia
+            // Draw telegraph lines
             if (attackTimer > 0f && attackTimer < telegraphDuration)
             {
                 float fadeOut = 8f;
@@ -132,9 +133,9 @@ namespace MisterCarlosMod.Projectiles
                 position = projectile.Center - Main.screenPosition;
 
                 Color color = Color.White;
-                if (attackTimer >= telegraphAt + telegraphDuration - fadeOut)
+                if (attackTimer >= telegraphDuration - fadeOut)
                 {
-                    color *= 1f - ((attackTimer - telegraphAt - (telegraphDuration - fadeOut)) / fadeOut);
+                    color *= 1f - ((attackTimer - (telegraphDuration - fadeOut)) / fadeOut);
                 }
 
                 float angleBetweenLasers = MathHelper.TwoPi / LaserCount;
@@ -146,7 +147,7 @@ namespace MisterCarlosMod.Projectiles
                 }
             }
 
-            // Dibujar manualmente el proyectil porque el vanilla no pone bien la escala
+            // Manually draw projectile to take into account scale properly
             spriteBatch.Draw(texture, position, null, color12, projectile.rotation, origin, projectile.scale, SpriteEffects.None, 0f);
 
             return false;
@@ -154,7 +155,8 @@ namespace MisterCarlosMod.Projectiles
 
         private void VanillaAnimationThingy()
         {
-            // Partículas de vórtice copiadas del código fuente vanilla
+            // Even more stuff from vanilla source code
+            // Creates the vortex particles
             if (Main.rand.NextBool(2))
             {
                 Vector2 rotation = Vector2.UnitY.RotatedByRandom(6.2831854820251465);

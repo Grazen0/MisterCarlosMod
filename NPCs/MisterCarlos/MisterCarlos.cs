@@ -116,21 +116,20 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override void AI()
         {
-            // Animación de alas
+            // Wings animation
             if (++wingsFrameCount > 4)
             {
                 wingsFrame = (wingsFrame + 1) % wingFrames;
                 wingsFrameCount = 0;
             }
 
-            // Animación de hojas
+            // Leaf ring animation
             leafTimer = (leafTimer + 1) % (360f / leafCount / leafSpeed);
 
-            // Rotar personaje según velocidad
-            
+            // Rotate NPC according to X velocity
             npc.rotation = MathHelper.ToRadians(MathHelper.Min(npc.velocity.X * 2f, 40f));
 
-            // Mirar hacia el personaje
+            // Look towards target
             int direction = Math.Sign((Target.Center - npc.Center).X);
             if (direction != 0)
             {
@@ -140,11 +139,11 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
             if (transitioning)
             {
-                // IA de transición
+                // Transition AI
                 npc.dontTakeDamage = true;
                 npc.velocity *= 0.93f;
 
-                // Reducir velocided y comenzar ciclo de transición
+                // Slow down and run transition cycle
                 float velocityLength = npc.velocity.Length();
                 if (velocityLength == 0f)
                 {
@@ -182,7 +181,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             }
             else
             {
-                // Comenzar transición si es necesario
+                // Check if transition should start
                 float lifeRadius = (float)npc.life / npc.lifeMax;
 
                 bool doFirstTransition = Phase == 0 && lifeRadius <= (Main.expertMode ? 0.7f : 0.5f);
@@ -197,7 +196,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     return;
                 }
 
-                // IA de pelea
+                // Actual fight AI
                 if (initAttack)
                 {
                     weapon = null;
@@ -221,7 +220,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 {
                     CurrentAttack.AI();
 
-                    // Progresar ciclo
                     CycleTimer++;
                     if (Main.netMode != NetmodeID.MultiplayerClient && CycleTimer > CurrentAttack.Duration)
                     {
@@ -243,7 +241,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         private void DespawnAI()
         {
-            // Dejar de despawnear si se encuentra un objetivo válido
+            // Stop despawning if a valid target is found
             npc.TargetClosest(false);
             if (Main.netMode != NetmodeID.MultiplayerClient && HasValidTarget())
             {
@@ -255,7 +253,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 return;
             }
 
-            // Reducir velocidad y despawnear
+            // Slow down and despawn
             npc.velocity *= 0.95f;
             if (npc.velocity.Length() < 0.3f)
             {
@@ -273,7 +271,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         {
             if (npc.life > 0) return;
 
-            // Efecto de muerte
+            // Death effect
             for (int d = 0; d < 20; d++)
             {
                 int dust = Dust.NewDust(npc.Center, npc.width, npc.height, DustID.Dirt);
@@ -308,7 +306,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override bool PreDraw(SpriteBatch spriteBatch, Color drawColor)
         {
-            // Dibujar alas
+            // Draw wings
             int frameHeight = wingsTexture.Height / wingFrames;
             Rectangle sourceRectangle = new Rectangle(0, wingsFrame * frameHeight, wingsTexture.Width, frameHeight);
 
@@ -327,7 +325,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
             spriteBatch.Draw(wingsTexture, position - Main.screenPosition, sourceRectangle, drawColor, npc.rotation, origin, 1f, flip, 0f);
 
-            // Dibujar anillos de hojas
+            // Draw leaf rings
             int phasesLeft = (Main.expertMode ? 2 : 1) - Phase;
             if (phasesLeft > 0)
             {
@@ -346,8 +344,8 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     {
                         float rotate = (leafTimer * leafSpeed) + (cycleDegrees * leaf);
 
-                        // Invertir rotación en el segundo anillo
-                        if (ring % 2 == 0)
+                        // Invert rotation on odd ring
+                        if (ring % 2 == 1)
                         {
                             rotate *= -1f;
                         }
@@ -377,7 +375,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             SpriteEffects flip;
             Vector2 origin;
 
-            // Dibujar arma en mano
+            // Draw held weapon
             if (weapon != null)
             {
                 position = npc.Center;
@@ -406,7 +404,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     0f);
             }
 
-            // Dibujar brazo
+            // Draw arm over held weapon
             position = npc.Center;
             position.Y -= 5f;
 

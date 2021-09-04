@@ -60,7 +60,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
             int moveDuration = 60;
             int totalAttackDuration = 60;
 
-            // Moverse cerca del jugador
+            // Move next to player
             float moveSpeed = 16f + (modNPC.Target.velocity.Length() * 0.5f);
             float inertia = 25f;
             Vector2 velocity = npc.DirectionTo(modNPC.Target.Center + position) * moveSpeed;
@@ -91,7 +91,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
         private void LaunchPortal(int totalAttackDuration, float timePassed)
         {
-            // Lanzar portal lunar
             Vector2 toPlayer = modNPC.npc.DirectionTo(modNPC.Target.Center);
             float speed = 16f + Main.rand.NextFloat(20f);
 

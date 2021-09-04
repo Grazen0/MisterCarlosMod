@@ -67,7 +67,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
         {
             NPC npc = modNPC.npc;
 
-            // Moverse cerca del jugador
+            // Move next to player
             float moveSpeed = 16f + (modNPC.Target.velocity.Length() * 0.6f);
             float inertia = 20f;
 
@@ -80,7 +80,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
                 if (timePassed < totalShootDuration + intervalDuration)
                 {
-                    // Primer ataque
+                    // First attack (random projectile spread)
                     if (timePassed < totalShootDuration)
                     {
                         if (Main.netMode != NetmodeID.MultiplayerClient)
@@ -103,7 +103,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                 }
                 else
                 {
-                    // Segundo ataque
+                    // Second attack (pog spiral)
                     float secondAttackDuration = 120f;
                     timePassed -= totalShootDuration + intervalDuration;
 
@@ -113,13 +113,14 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                         inertia = 5;
                         moveSpeed = 40f;
 
-                        // Animación del starlight
+                        // Rotate held starlight
                         if (Main.netMode != NetmodeID.Server)
                         {
                             if (modNPC.weapon == null)
                             {
                                 modNPC.weapon = new HoldWeapon(starlightTexture, starlightOrigin);
                             }
+
                             float rotationSpeed = MathHelper.Pi / 10f;
                             modNPC.weapon.rotation = (modNPC.weapon.rotation + rotationSpeed) % MathHelper.TwoPi;
                         }

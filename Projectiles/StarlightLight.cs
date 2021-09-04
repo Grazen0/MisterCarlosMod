@@ -56,7 +56,7 @@ namespace MisterCarlosMod.Projectiles
                 {
                     if (!isFrozen)
                     {
-                        // Congelar proyectil
+                        // Freeze projectile
                         CreateDust();
                         Main.PlaySound(SoundID.NPCHit5);
 
@@ -76,7 +76,7 @@ namespace MisterCarlosMod.Projectiles
                         projectile.netUpdate = true;
                     }
 
-                    projectile.velocity.Y = Math.Min(projectile.velocity.Y + 0.23f, 15f); // Gravedad
+                    projectile.velocity.Y = Math.Min(projectile.velocity.Y + 0.23f, 15f); // Gravity
                     projectile.rotation = projectile.velocity.ToRotation();
                 }
             }

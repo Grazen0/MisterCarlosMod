@@ -5,7 +5,7 @@ namespace MisterCarlosMod
 {
     public class Utils
     {
-        // Código de StackOverflow xd
+        // Code "borrowed" from StackOverflow
         public static Color HsvToColor(float h, float s, float v)
         {
             double H = h % 360;
