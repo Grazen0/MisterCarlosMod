@@ -7,6 +7,7 @@ namespace MisterCarlosMod.NPCs
 {
     public abstract class NPCAttack<NPC> where NPC : ModNPC
     {
+        public readonly Mod mod;
         public readonly NPC modNPC;
 
         public abstract float Duration
@@ -17,6 +18,7 @@ namespace MisterCarlosMod.NPCs
         public NPCAttack(NPC modNPC)
         {
             this.modNPC = modNPC;
+            mod = modNPC.mod;
         }
 
         public abstract void AI();
