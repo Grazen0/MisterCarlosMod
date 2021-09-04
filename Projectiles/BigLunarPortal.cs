@@ -124,8 +124,7 @@ namespace MisterCarlosMod.Projectiles
             spriteBatch.Draw(texture, position, null, color12, -projectile.rotation * 0.7f, origin, projectile.scale, SpriteEffects.FlipHorizontally, 0f);
 
             // Dibujar líneas de advertencia
-            float telegraphAt = 0f;
-            if (attackTimer > telegraphAt && attackTimer < telegraphDuration)
+            if (attackTimer > 0f && attackTimer < telegraphDuration)
             {
                 float fadeOut = 8f;
 
@@ -147,7 +146,7 @@ namespace MisterCarlosMod.Projectiles
                 }
             }
 
-            // Dibujar manualmente el proyectile porque el vanilla no pone bien la escala
+            // Dibujar manualmente el proyectil porque el vanilla no pone bien la escala
             spriteBatch.Draw(texture, position, null, color12, projectile.rotation, origin, projectile.scale, SpriteEffects.None, 0f);
 
             return false;
