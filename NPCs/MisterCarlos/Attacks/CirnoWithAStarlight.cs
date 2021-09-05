@@ -59,7 +59,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
                 Rectangle bounds = modNPC.weapon.Texture.Bounds;
                 starlightOrigin = modNPC.weapon.origin = bounds.BottomLeft() + Vector2.Normalize(bounds.TopRight() - bounds.BottomLeft()) * 5f;
-
             }
         }
 

@@ -35,7 +35,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public MisterCarlos()
         {
-            attacks[0] = new List<NPCAttack<MisterCarlos>> { new CirnoWithAStarlight(this) };
+            attacks[0] = new List<NPCAttack<MisterCarlos>> { new StardustCellRing(this) };
             attacks[1] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
             attacks[2] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
         }
