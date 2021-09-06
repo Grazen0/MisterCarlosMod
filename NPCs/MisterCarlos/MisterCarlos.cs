@@ -237,6 +237,16 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
         {
             transitioning = true;
             CycleTimer = 0f;
+
+            // Delete all hostile projectiles
+            for (int i = 0; i < Main.maxProjectiles; i++)
+            {
+                Projectile proj = Main.projectile[i];
+                if (proj.active && proj.hostile)
+                {
+                    proj.Kill();
+                }
+            }
         }
 
         private void DespawnAI()
