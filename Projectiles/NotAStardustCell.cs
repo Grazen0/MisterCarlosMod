@@ -123,7 +123,7 @@ namespace MisterCarlosMod.Projectiles
                 origin,
                 scale * 1.5f,
                 SpriteEffects.None,
-                0f);
+                1f);
 
             return false;
         }
@@ -131,11 +131,11 @@ namespace MisterCarlosMod.Projectiles
         public override void Kill(int timeLeft)
         {
             // Create dust
-            for (int d = 0; d < 15; d++)
+            Color dustColor = new Color(136, 226, 255);
+            for (int d = 0; d < 10; d++)
             {
-                int dustID = Dust.NewDust(projectile.Center, 0, 0, DustID.FartInAJar, 0, 0, 0, Color.Blue * 0.9f, 1.5f);
-                Main.dust[dustID].velocity *= 3f;
-                Main.dust[dustID].fadeIn *= 1f;
+                int dustID = Dust.NewDust(projectile.Center, 0, 0, DustID.Snow, 0, 0, 0, dustColor, 1.5f);
+                Main.dust[dustID].velocity *= 2f;
                 Main.dust[dustID].noGravity = true;
             }
         }

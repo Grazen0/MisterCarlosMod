@@ -29,8 +29,6 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
         public override void Initialize()
         {
-            arenaCenter = modNPC.Target.Center;
-
             if (Main.netMode != NetmodeID.Server)
             {
                 modNPC.weapon = new HoldWeapon("Terraria/Item_" + ItemID.StardustCellStaff, Vector2.Zero, MathHelper.PiOver2);
@@ -132,10 +130,14 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                         modNPC.weapon = null;
                         targetPosition.X = modNPC.Target.position.X;
                         targetPosition.Y += 50f;
+
                         inertia = 40;
-                        moveSpeed = 10f;
+                        moveSpeed = 5f;
                     }
                 }
+            } else
+            {
+                arenaCenter = modNPC.Target.Center;
             }
 
             Vector2 velocity = npc.DirectionTo(targetPosition) * moveSpeed + (modNPC.Target.velocity * 0.5f);

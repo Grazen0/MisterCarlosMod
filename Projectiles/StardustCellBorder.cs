@@ -66,7 +66,7 @@ namespace MisterCarlosMod.Projectiles
 
         public override bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
         {
-            // Draw projectile manually bcs scale issues
+            float scaleFactor = 1.5f;
             Texture2D texture = Main.projectileTexture[projectile.type];
 
             int frameHeight = texture.Height / Main.npcFrameCount[NPCID.StardustCellBig];
@@ -74,14 +74,37 @@ namespace MisterCarlosMod.Projectiles
 
             Rectangle sourceRectangle = new Rectangle(0, projectile.frame * frameHeight, texture.Width, frameHeight);
 
+            // Draw trail
+            Texture2D trailTexture = mod.GetTexture("Projectiles/StardustCellTrail");
+            int trails = 6;
+            float trailSeparation = MathHelper.ToRadians(0.5f);
+
+            for (int i = 1; i <= trails; i++)
+            {
+                Vector2 toCenter =  projectile.Center - Center;
+                Vector2 position = Center + toCenter.RotatedBy(-(i * trailSeparation));
+
+                spriteBatch.Draw(
+                    trailTexture,
+                    position - Main.screenPosition,
+                    sourceRectangle,
+                    Color.Cyan * 0.2f,
+                    projectile.rotation,
+                    origin,
+                    scale * scaleFactor,
+                    SpriteEffects.None,
+                    0f);
+            }
+
+            // Draw projectile manually bcs scale issues
             spriteBatch.Draw(
                 texture,
                 projectile.Center - Main.screenPosition,
                 sourceRectangle,
-                lightColor,
+                Color.White,
                 projectile.rotation,
                 origin,
-                scale * 1.5f,
+                scale * scaleFactor,
                 SpriteEffects.None,
                 0f);
 
@@ -96,6 +119,19 @@ namespace MisterCarlosMod.Projectiles
         public override void ModifyHitPlayer(Player target, ref int damage, ref bool crit)
         {
             target.noKnockback = false;
+        }
+
+        public override void Kill(int timeLeft)
+        {
+            // Create dust
+            Color dustColor = new Color(136, 226, 255);
+            for (int d = 0; d < 10; d++)
+            {
+                int dustID = Dust.NewDust(projectile.Center, 0, 0, DustID.Snow, 0, 0, 0, dustColor, 2f);
+                Main.dust[dustID].fadeIn *= 2f;
+                Main.dust[dustID].velocity *= 3f;
+                Main.dust[dustID].noGravity = true;
+            }
         }
     }
 }
