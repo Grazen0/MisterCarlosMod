@@ -31,10 +31,7 @@ namespace MisterCarlosMod.NPCs
 
         public virtual void ReceiveExtraAI(BinaryReader reader) { }
 
-        public virtual bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
-        {
-            return true;
-        }
+        public virtual void PreDraw(SpriteBatch spriteBatch, Color lightColor) { }
 
         public virtual void PostDraw(SpriteBatch spriteBatch, Color drawColor) { }
     }

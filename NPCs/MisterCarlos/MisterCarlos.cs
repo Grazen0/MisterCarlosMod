@@ -2,17 +2,20 @@
 using System.IO;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+using MisterCarlosMod.Buffs;
 using MisterCarlosMod.NPCs.MisterCarlos.Attacks;
-using Microsoft.Xna.Framework.Graphics;
 
 namespace MisterCarlosMod.NPCs.MisterCarlos
 {
     [AutoloadBossHead]
     public class MisterCarlos : ModNPC
     {
+        public static readonly float CurseRange = 10000f;
+
         private readonly Dictionary<int, List<NPCAttack<MisterCarlos>>> attacks = new Dictionary<int, List<NPCAttack<MisterCarlos>>>();
 
         private readonly Texture2D wingsTexture = ModContent.GetTexture("Terraria/Wings_8");
@@ -116,6 +119,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public override void AI()
         {
+            #region Visuals
             // Wings animation
             if (++wingsFrameCount > 4)
             {
@@ -135,6 +139,21 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             {
                 npc.direction = direction;
                 npc.spriteDirection = direction;
+            }
+            #endregion
+
+            // Apply Efe's Curse to players in range
+            for (int i = 0; i < Main.maxPlayers; i++)
+            {
+                Player player = Main.player[i];
+                if (!player.active || player.dead) continue;
+
+                MisterCarlosPlayer modPlayer = player.GetModPlayer<MisterCarlosPlayer>();
+                
+                if (!modPlayer.efeCurse && npc.Distance(player.Center) <= CurseRange)
+                {
+                    player.AddBuff(ModContent.BuffType<EfeCurse>(), 200, true);
+                }
             }
 
             if (transitioning)
@@ -314,9 +333,25 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 effects = SpriteEffects.FlipHorizontally;
         }
 
-        public override bool PreDraw(SpriteBatch spriteBatch, Color drawColor)
+        public override bool PreDraw(SpriteBatch spriteBatch, Color lightColor)
         {
-            // Draw wings
+            DrawWings(spriteBatch, lightColor);
+            DrawLeafRings(spriteBatch, lightColor);
+
+            CurrentAttack.PreDraw(spriteBatch, lightColor);
+            return true;
+        }
+
+        public override void PostDraw(SpriteBatch spriteBatch, Color drawColor)
+        {
+            DrawWeapon(spriteBatch, drawColor);
+            DrawArm(spriteBatch, drawColor);
+
+            CurrentAttack.PostDraw(spriteBatch, drawColor);
+        }
+
+        private void DrawWings(SpriteBatch spriteBatch, Color lightColor)
+        {
             int frameHeight = wingsTexture.Height / wingFrames;
             Rectangle sourceRectangle = new Rectangle(0, wingsFrame * frameHeight, wingsTexture.Width, frameHeight);
 
@@ -333,20 +368,31 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 origin.X = sourceRectangle.Width - origin.X;
             }
 
-            spriteBatch.Draw(wingsTexture, position - Main.screenPosition, sourceRectangle, drawColor, npc.rotation, origin, 1f, flip, 0f);
+            spriteBatch.Draw(
+                wingsTexture, 
+                position - Main.screenPosition, 
+                sourceRectangle, 
+                lightColor, 
+                npc.rotation, 
+                origin, 
+                1f, 
+                flip, 
+                0f);
+        }
 
-            // Draw leaf rings
+        private void DrawLeafRings(SpriteBatch spriteBatch, Color lightColor)
+        {
             int phasesLeft = (Main.expertMode ? 2 : 1) - Phase;
             if (phasesLeft > 0)
             {
                 int frameCount = Main.projFrames[ProjectileID.Leaf];
-                frameHeight = leafTexture.Height / frameCount;
+                int frameHeight = leafTexture.Height / frameCount;
 
                 float cycleDegrees = 360f / leafCount;
                 int frame = (int)Math.Floor((leafTimer / cycleDegrees) * frameCount);
 
-                sourceRectangle = new Rectangle(0, frame * frameHeight, leafTexture.Width, frameHeight);
-                origin = new Vector2(leafTexture.Width / 2f, frameHeight / 2f);
+                Rectangle sourceRectangle = new Rectangle(0, frame * frameHeight, leafTexture.Width, frameHeight);
+                Vector2 origin = new Vector2(leafTexture.Width / 2f, frameHeight / 2f);
 
                 for (int ring = 0; ring < phasesLeft; ring++)
                 {
@@ -361,12 +407,12 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                         }
 
                         Vector2 rotation = new Vector2(0, 50f * (ring + 1)).RotatedBy(MathHelper.ToRadians(rotate));
-                        position = npc.Center + rotation;
+                        Vector2 position = npc.Center + rotation;
 
                         spriteBatch.Draw(
                             leafTexture,
                             position - Main.screenPosition,
-                            sourceRectangle, drawColor * 0.5f,
+                            sourceRectangle, lightColor * 0.5f,
                             rotation.ToRotation() + MathHelper.PiOver2,
                             origin,
                             1f,
@@ -375,23 +421,16 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     }
                 }
             }
-
-            return CurrentAttack.PreDraw(spriteBatch, drawColor);
         }
 
-        public override void PostDraw(SpriteBatch spriteBatch, Color drawColor)
+        private void DrawWeapon(SpriteBatch spriteBatch, Color drawColor)
         {
-            Vector2 position;
-            SpriteEffects flip;
-            Vector2 origin;
-
-            // Draw held weapon
             if (weapon != null)
             {
-                position = npc.Center;
-                flip = npc.direction == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
+                Vector2 position = npc.Center;
+                SpriteEffects flip = npc.direction == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
 
-                origin = weapon.origin;
+                Vector2 origin = weapon.origin;
                 if (npc.direction == -1)
                 {
                     origin.X = weapon.Texture.Width - origin.X;
@@ -413,17 +452,17 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                     flip,
                     0f);
             }
+        }
 
-            // Draw arm over held weapon
-            position = npc.Center;
+        private void DrawArm(SpriteBatch spriteBatch, Color drawColor)
+        {
+            Vector2 position = npc.Center;
             position.Y -= 5f;
 
-            origin = new Vector2(npc.direction == 1 ? armTexture.Width : 0f, 0f);
-            flip = npc.direction == 1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
+            Vector2 origin = new Vector2(npc.direction == 1 ? armTexture.Width : 0f, 0f);
+            SpriteEffects flip = npc.direction == 1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
 
             spriteBatch.Draw(armTexture, position - Main.screenPosition, armTexture.Bounds, drawColor, npc.rotation, origin, 1f, flip, 0f);
-
-            CurrentAttack.PostDraw(spriteBatch, drawColor);
         }
 
         private bool HasValidTarget()

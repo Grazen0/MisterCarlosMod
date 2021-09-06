@@ -1,3 +1,6 @@
 ﻿
 ItemTooltip.YouTubeNotification=Summons {$Mods.MisterCarlosMod.NPCName.MisterCarlos}\nNot consumable
 ItemName.YouTubeNotification=YouTube Notification
+
+BuffName.EfeCurse=Efe's Curse
+BuffDescription.EfeCurse=The spirit of Efe courses through your body

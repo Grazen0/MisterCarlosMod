@@ -1,3 +1,6 @@
 ﻿
 ItemName.YouTubeNotification=Notificación de YouTube
 ItemTooltip.YouTubeNotification=Invoca a {$Mods.MisterCarlosMod.NPCName.MisterCarlos}\nNo consumible
+
+BuffName.EfeCurse=Maldición de Efe
+BuffDescription.EfeCurse=El espíritu de Efe te envuelve
