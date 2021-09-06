@@ -4,3 +4,5 @@ ItemTooltip.YouTubeNotification=Invoca a {$Mods.MisterCarlosMod.NPCName.MisterCa
 
 BuffName.EfeCurse=Maldición de Efe
 BuffDescription.EfeCurse=El espíritu de Efe te envuelve
+
+BuffDescription.StardustInfection=Tu piel se desintegra al nivel celular
