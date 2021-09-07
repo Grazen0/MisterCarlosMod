@@ -58,7 +58,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                 float timePassed = modNPC.CycleTimer - initialDelay;
                 float shootDelay = 120f;
 
-                ApplyStardustInfection();
+                CheckStardustInfection();
 
                 if (timePassed == 0f)
                 {
@@ -126,6 +126,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                     }
                     else
                     {
+                        // Hover over player
                         npc.direction = npc.spriteDirection = previousDirection;
 
                         modNPC.weapon = null;
@@ -134,6 +135,11 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
 
                         inertia = 40;
                         moveSpeed = 5f;
+
+                        if (modNPC.CycleTimer > Duration - 60f)
+                        {
+                            ClearStardustInfection();
+                        }
                     }
                 }
             }
@@ -146,9 +152,8 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
             npc.velocity = (npc.velocity * (inertia - 1) + velocity) / inertia;
         }
 
-        private void ApplyStardustInfection()
+        private void CheckStardustInfection()
         {
-            // Apply stardust infection to players outside arena
             for (int i = 0; i < Main.maxPlayers; i++)
             {
                 Player player = Main.player[i];
@@ -159,8 +164,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                 if (distance > arenaRadius)
                 {
                     player.AddBuff(ModContent.BuffType<StardustInfection>(), 200, true);
-                }
-                else
+                } else
                 {
                     MisterCarlosPlayer modPlayer = player.GetModPlayer<MisterCarlosPlayer>();
                     if (modPlayer.stardustInfection)
@@ -169,6 +173,23 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
                         if (index != -1)
                             player.DelBuff(index);
                     }
+                }
+            }
+        }
+
+        private void ClearStardustInfection()
+        {
+            for (int i = 0; i < Main.maxPlayers; i++)
+            {
+                Player player = Main.player[i];
+                if (!player.active || player.dead) continue;
+
+                MisterCarlosPlayer modPlayer = player.GetModPlayer<MisterCarlosPlayer>();
+                if (modPlayer.stardustInfection)
+                {
+                    int index = player.FindBuffIndex(ModContent.BuffType<StardustInfection>());
+                    if (index != -1)
+                        player.DelBuff(index);
                 }
             }
         }
