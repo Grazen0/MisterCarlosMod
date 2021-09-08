@@ -2,7 +2,7 @@
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
-using MisterCarlosMod.Projectiles;
+using MisterCarlosMod.Projectiles.StardustRing;
 using MisterCarlosMod.Buffs;
 
 namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
@@ -53,103 +53,110 @@ namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
             float inertia = 10f;
 
             float initialDelay = 60f;
-            if (modNPC.CycleTimer >= initialDelay)
-            {
-                float timePassed = modNPC.CycleTimer - initialDelay;
-                float shootDelay = 120f;
+            float shootDelay = 120f;
 
-                CheckStardustInfection();
+            float shootSpeed = 15f;
+            float shootDuration = shootSpeed * (TotalCells + 1);
 
-                if (timePassed == 0f)
-                {
-                    // Create stardust cell ring
-                    int cells = 40;
-                    float separation = MathHelper.TwoPi / cells;
+            float timer = modNPC.CycleTimer;
 
-                    for (int i = 0; i < cells; i++)
-                    {
-                        Vector2 position = arenaCenter + Vector2.UnitX.RotatedBy(i * separation) * arenaRadius;
-
-                        Projectile.NewProjectile(
-                            position,
-                            Vector2.Zero,
-                            ModContent.ProjectileType<StardustCellBorder>(),
-                            damage / 2,
-                            0f,
-                            Main.myPlayer,
-                            arenaCenter.X, arenaCenter.Y);
-                    }
-                }
-                else if (Main.netMode != NetmodeID.MultiplayerClient && timePassed >= shootDelay)
-                {
-                    // Shoot stardust cells
-                    timePassed -= shootDelay;
-                    int shootSpeed = 15;
-                    int shootDuration = shootSpeed * (TotalCells + 1);
-
-                    if (timePassed < shootDuration)
-                    {
-
-                        float shootTime = timePassed % shootSpeed;
-
-                        if (Main.netMode != NetmodeID.Server)
-                        {
-                            modNPC.weapon.rotation = shootTime / shootSpeed * -MathHelper.Pi;
-                        }
-
-                        if (shootTime == 0)
-                        {
-                            if (Main.netMode != NetmodeID.MultiplayerClient)
-                            {
-                                // Shoot cell
-                                float cellIndex = timePassed / shootSpeed;
-                                float spread = MathHelper.Pi * 0.8f;
-                                float separation = spread / TotalCells;
-
-                                float rotation = (-spread / 2f) + cellIndex * separation;
-                                Vector2 direction = Vector2.UnitY.RotatedBy(rotation);
-                                float stopAfter = Main.rand.NextFloat(5, 30f);
-
-                                Projectile.NewProjectile(
-                                    npc.Center,
-                                    direction * 10f,
-                                    ModContent.ProjectileType<NotAStardustCell>(),
-                                    damage / 2,
-                                    0f,
-                                    Main.myPlayer,
-                                    modNPC.Target.whoAmI,
-                                    stopAfter);
-                            }
-
-                            Main.PlaySound(SoundID.Item44, npc.Center);
-                        }
-                    }
-                    else
-                    {
-                        // Hover over player
-                        npc.direction = npc.spriteDirection = previousDirection;
-
-                        modNPC.weapon = null;
-                        targetPosition.X = modNPC.Target.position.X;
-                        targetPosition.Y += 50f;
-
-                        inertia = 40;
-                        moveSpeed = 5f;
-
-                        if (modNPC.CycleTimer > Duration - 60f)
-                        {
-                            ClearStardustInfection();
-                        }
-                    }
-                }
-            }
-            else
+            if (timer < initialDelay)
             {
                 arenaCenter = modNPC.Target.Center;
+            } else
+            {
+                CheckStardustInfection();
+
+                if ((timer -= initialDelay) == 0f)
+                {
+                    CreateArena();
+                }
+                else if ((timer -= shootDelay) < shootDuration)
+                {
+                    ShootCells(timer, shootSpeed);
+                }
+                else
+                {
+                    // Hover over player
+                    npc.direction = npc.spriteDirection = previousDirection;
+
+                    modNPC.weapon = null;
+                    targetPosition.X = modNPC.Target.position.X;
+                    targetPosition.Y += 50f;
+
+                    inertia = 40;
+                    moveSpeed = 5f;
+
+                    if (modNPC.CycleTimer > Duration - 60f)
+                    {
+                        ClearStardustInfection();
+                    }
+                }
             }
+            
 
             Vector2 velocity = npc.DirectionTo(targetPosition) * moveSpeed + (modNPC.Target.velocity * 0.5f);
             npc.velocity = (npc.velocity * (inertia - 1) + velocity) / inertia;
+        }
+
+        private void ShootCells(float timer, float shootSpeed)
+        {
+            float shootTime = timer % shootSpeed;
+
+            if (Main.netMode != NetmodeID.Server)
+            {
+                modNPC.weapon.rotation = shootTime / shootSpeed * -MathHelper.Pi;
+            }
+
+            if (shootTime == 0)
+            {
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    // Shoot cell
+                    float cellIndex = timer / shootSpeed;
+                    float spread = MathHelper.Pi * 0.8f;
+                    float separation = spread / TotalCells;
+
+                    float rotation = (-spread / 2f) + cellIndex * separation;
+                    Vector2 direction = Vector2.UnitY.RotatedBy(rotation);
+                    float stopAfter = Main.rand.NextFloat(5, 30f);
+
+                    Projectile.NewProjectile(
+                        modNPC.npc.Center,
+                        direction * 10f,
+                        ModContent.ProjectileType<NotAStardustCell>(),
+                        damage / 2,
+                        0f,
+                        Main.myPlayer,
+                        modNPC.Target.whoAmI,
+                        stopAfter);
+                }
+
+                Main.PlaySound(SoundID.Item44, modNPC.npc.Center);
+            }
+        }
+
+        private void CreateArena()
+        {
+            if (Main.netMode != NetmodeID.Server) return;
+
+            // Create stardust cell ring
+            int cells = 40;
+            float separation = MathHelper.TwoPi / cells;
+
+            for (int i = 0; i < cells; i++)
+            {
+                Vector2 position = arenaCenter + Vector2.UnitX.RotatedBy(i * separation) * arenaRadius;
+
+                Projectile.NewProjectile(
+                    position,
+                    Vector2.Zero,
+                    ModContent.ProjectileType<StardustCellBorder>(),
+                    damage / 2,
+                    0f,
+                    Main.myPlayer,
+                    arenaCenter.X, arenaCenter.Y);
+            }
         }
 
         private void CheckStardustInfection()

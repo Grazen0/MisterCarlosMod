@@ -4,7 +4,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace MisterCarlosMod.Projectiles
+namespace MisterCarlosMod.Projectiles.StardustRing
 {
     public class StardustCellBorder : ModProjectile
     {
