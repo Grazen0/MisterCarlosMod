@@ -2,7 +2,7 @@
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
-using MisterCarlosMod.Projectiles.StardustRing;
+using MisterCarlosMod.Projectiles.StardustCellRing;
 using MisterCarlosMod.Buffs;
 
 namespace MisterCarlosMod.NPCs.MisterCarlos.Attacks
