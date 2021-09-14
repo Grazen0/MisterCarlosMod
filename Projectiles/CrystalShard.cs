@@ -66,7 +66,7 @@ namespace MisterCarlosMod.Projectiles
         {
             Texture2D texture = Main.projectileTexture[ShardsLeft > 0 ? ProjectileID.CrystalVileShardShaft : ProjectileID.CrystalVileShardHead];
 
-            Vector2 origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
+            Vector2 origin = new Vector2(texture.Width / 2f, texture.Height); // TEST
 
             spriteBatch.Draw(
                 texture,
@@ -84,7 +84,7 @@ namespace MisterCarlosMod.Projectiles
 
         public override bool CanHitPlayer(Player target)
         {
-            return projectile.alpha < 120;
+            return projectile.alpha < 80;
         }
     }
 }
