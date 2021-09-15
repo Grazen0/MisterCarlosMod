@@ -38,9 +38,9 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
 
         public MisterCarlos()
         {
-            attacks[0] = new List<NPCAttack<MisterCarlos>> { new StardustCellRing(this) };
-            attacks[1] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
-            attacks[2] = new List<NPCAttack<MisterCarlos>> { new TestAttack(this) };
+            attacks[0] = new List<NPCAttack<MisterCarlos>> { new VenusMagnumMadness(this) };
+            attacks[1] = new List<NPCAttack<MisterCarlos>> { };
+            attacks[2] = new List<NPCAttack<MisterCarlos>> { };
         }
 
         public override void SetStaticDefaults()
@@ -149,7 +149,7 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
                 if (!player.active || player.dead) continue;
 
                 MisterCarlosPlayer modPlayer = player.GetModPlayer<MisterCarlosPlayer>();
-                
+
                 if (!modPlayer.efeCurse && npc.Distance(player.Center) <= CurseRange)
                 {
                     player.AddBuff(ModContent.BuffType<EfeCurse>(), 200, true);
@@ -369,14 +369,14 @@ namespace MisterCarlosMod.NPCs.MisterCarlos
             }
 
             spriteBatch.Draw(
-                wingsTexture, 
-                position - Main.screenPosition, 
-                sourceRectangle, 
-                lightColor, 
-                npc.rotation, 
-                origin, 
-                1f, 
-                flip, 
+                wingsTexture,
+                position - Main.screenPosition,
+                sourceRectangle,
+                lightColor,
+                npc.rotation,
+                origin,
+                1f,
+                flip,
                 0f);
         }
 
